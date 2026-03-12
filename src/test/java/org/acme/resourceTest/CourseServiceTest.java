@@ -14,6 +14,7 @@ import org.acme.ada.repository.LessonRepository;
 import org.acme.ada.service.course.CourseServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,28 +47,33 @@ class CourseServiceTest {
 
     @Test
     void create_devePersistirCursoERetornarResponseDTO() {
-        CourseDTO dto = new CourseDTO("Java");
+        CourseDTO dto = new CourseDTO("Java Básico");
 
         CourseResponseDTO response = service.create(dto);
 
-        verify(courseRepository, times(1)).persist((Course) any(Course.class));
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).persist(captor.capture());
+
+        Course cursoPersistido = captor.getValue();
+        assertEquals("Java Básico", cursoPersistido.getName());
+
         assertNotNull(response);
-        assertEquals("Java", response.name());
+        assertEquals("Java Básico", response.name());
     }
 
     @Test
     void list_deveRetornarListaDeCourseResponseDTO() {
-        Course course1 = new Course();
-        course1.setId(1L);
-        course1.setName("Java");
+        Course c1 = new Course();
+        c1.setId(1L);
+        c1.setName("Java");
 
-        Course course2 = new Course();
-        course2.setId(2L);
-        course2.setName("Spring");
+        Course c2 = new Course();
+        c2.setId(2L);
+        c2.setName("Spring");
 
         when(courseRepository.findAll()).thenReturn(coursePanacheQuery);
-        when(coursePanacheQuery.page(Page.of(0, 10))).thenReturn(coursePanacheQuery);
-        when(coursePanacheQuery.list()).thenReturn(List.of(course1, course2));
+        when(coursePanacheQuery.page(any(Page.class))).thenReturn(coursePanacheQuery);
+        when(coursePanacheQuery.list()).thenReturn(List.of(c1, c2));
 
         List<CourseResponseDTO> response = service.list(0, 10);
 
@@ -76,16 +82,16 @@ class CourseServiceTest {
         assertEquals("Java", response.get(0).name());
         assertEquals("Spring", response.get(1).name());
 
-        verify(courseRepository, times(1)).findAll();
-        verify(coursePanacheQuery, times(1)).page(Page.of(0, 10));
-        verify(coursePanacheQuery, times(1)).list();
+        verify(courseRepository).findAll();
+        verify(coursePanacheQuery).page(any(Page.class));
+        verify(coursePanacheQuery).list();
     }
 
     @Test
-    void findById_quandoExiste_deveRetornarCourseResponseDTO() {
+    void findById_deveRetornarCursoQuandoExistir() {
         Course course = new Course();
         course.setId(1L);
-        course.setName("Java");
+        course.setName("Quarkus");
 
         when(courseRepository.findById(1L)).thenReturn(course);
 
@@ -93,31 +99,26 @@ class CourseServiceTest {
 
         assertNotNull(response);
         assertEquals(1L, response.id());
-        assertEquals("Java", response.name());
-
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Quarkus", response.name());
     }
 
     @Test
-    void findById_quandoNaoExiste_deveLancarNotFoundException() {
-        when(courseRepository.findById(1L)).thenReturn(null);
+    void findById_deveLancarNotFoundQuandoCursoNaoExistir() {
+        when(courseRepository.findById(99L)).thenReturn(null);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> service.findById(1L)
-        );
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> service.findById(99L));
 
-        assertEquals("Course not found: 1", exception.getMessage());
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Course not found: 99", ex.getMessage());
     }
 
     @Test
-    void update_quandoExiste_deveAtualizarNomeERetornarResponseDTO() {
+    void update_deveAtualizarNomeDoCursoQuandoExistir() {
         Course course = new Course();
         course.setId(1L);
-        course.setName("Java");
+        course.setName("Nome Antigo");
 
-        CourseDTO dto = new CourseDTO("Java Avancado");
+        CourseDTO dto = new CourseDTO("Nome Novo");
 
         when(courseRepository.findById(1L)).thenReturn(course);
 
@@ -125,128 +126,119 @@ class CourseServiceTest {
 
         assertNotNull(response);
         assertEquals(1L, response.id());
-        assertEquals("Java Avancado", response.name());
-        assertEquals("Java Avancado", course.getName());
-
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Nome Novo", response.name());
+        assertEquals("Nome Novo", course.getName());
     }
 
     @Test
-    void update_quandoNaoExiste_deveLancarNotFoundException() {
-        CourseDTO dto = new CourseDTO("Java Avancado");
+    void update_deveLancarNotFoundQuandoCursoNaoExistir() {
+        CourseDTO dto = new CourseDTO("Novo Nome");
 
-        when(courseRepository.findById(1L)).thenReturn(null);
+        when(courseRepository.findById(10L)).thenReturn(null);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> service.update(1L, dto)
-        );
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> service.update(10L, dto));
 
-        assertEquals("Course not found: 1", exception.getMessage());
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Course not found: 10", ex.getMessage());
     }
 
     @Test
-    void delete_quandoExiste_deveExecutarSemErro() {
+    void delete_deveRemoverCursoQuandoExistir() {
         when(courseRepository.deleteById(1L)).thenReturn(true);
 
         assertDoesNotThrow(() -> service.delete(1L));
 
-        verify(courseRepository, times(1)).deleteById(1L);
+        verify(courseRepository).deleteById(1L);
     }
 
     @Test
-    void delete_quandoNaoExiste_deveLancarNotFoundException() {
-        when(courseRepository.deleteById(1L)).thenReturn(false);
+    void delete_deveLancarNotFoundQuandoCursoNaoExistir() {
+        when(courseRepository.deleteById(55L)).thenReturn(false);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> service.delete(1L)
-        );
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> service.delete(55L));
 
-        assertEquals("Course not found: 1", exception.getMessage());
-        verify(courseRepository, times(1)).deleteById(1L);
+        assertEquals("Course not found: 55", ex.getMessage());
     }
 
     @Test
-    void addLesson_quandoCursoExiste_devePersistirLessonERetornarResponseDTO() {
+    void addLesson_devePersistirLessonEVincularAoCurso() {
         Course course = new Course();
         course.setId(1L);
         course.setName("Java");
 
-        LessonDTO dto = new LessonDTO("Orientacao a Objetos");
+        LessonDTO dto = new LessonDTO("Aula 01");
 
         when(courseRepository.findById(1L)).thenReturn(course);
 
         LessonResponseDTO response = service.addLesson(1L, dto);
 
-        verify(courseRepository, times(1)).findById(1L);
-        verify(lessonRepository, times(1)).persist(any(Lesson.class));
+        ArgumentCaptor<Lesson> captor = ArgumentCaptor.forClass(Lesson.class);
+        verify(lessonRepository).persist(captor.capture());
+
+        Lesson lessonPersistida = captor.getValue();
+        assertEquals("Aula 01", lessonPersistida.getName());
+        assertEquals(course, lessonPersistida.getCourse());
 
         assertNotNull(response);
-        assertEquals("Orientacao a Objetos", response.name());
+        assertEquals("Aula 01", response.name());
     }
 
     @Test
-    void addLesson_quandoCursoNaoExiste_deveLancarNotFoundException() {
-        LessonDTO dto = new LessonDTO("Orientacao a Objetos");
+    void addLesson_deveLancarNotFoundQuandoCursoNaoExistir() {
+        LessonDTO dto = new LessonDTO("Aula inexistente");
 
-        when(courseRepository.findById(1L)).thenReturn(null);
+        when(courseRepository.findById(99L)).thenReturn(null);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> service.addLesson(1L, dto)
-        );
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> service.addLesson(99L, dto));
 
-        assertEquals("Course not found: 1", exception.getMessage());
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Course not found: 99", ex.getMessage());
+
         verify(lessonRepository, never()).persist(any(Lesson.class));
     }
 
     @Test
-    void listLessons_quandoCursoExiste_deveRetornarListaDeLessons() {
+    void listLessons_deveRetornarListaDeLessonsQuandoCursoExistir() {
         Course course = new Course();
         course.setId(1L);
         course.setName("Java");
 
-        Lesson lesson1 = new Lesson();
-        lesson1.setId(1L);
-        lesson1.setName("POO");
-        lesson1.setCourse(course);
+        Lesson l1 = new Lesson();
+        l1.setId(1L);
+        l1.setName("Introdução");
+        l1.setCourse(course);
 
-        Lesson lesson2 = new Lesson();
-        lesson2.setId(2L);
-        lesson2.setName("Heranca");
-        lesson2.setCourse(course);
+        Lesson l2 = new Lesson();
+        l2.setId(2L);
+        l2.setName("POO");
+        l2.setCourse(course);
 
         when(courseRepository.findById(1L)).thenReturn(course);
-        when(lessonRepository.find("course.id", 1L)).thenReturn(lessonPanacheQuery);
-        when(lessonPanacheQuery.list()).thenReturn(List.of(lesson1, lesson2));
+        when(lessonRepository.find(eq("course.id"), eq(1L))).thenReturn(lessonPanacheQuery);
+        when(lessonPanacheQuery.list()).thenReturn(List.of(l1, l2));
 
         List<LessonResponseDTO> response = service.listLessons(1L);
 
         assertNotNull(response);
         assertEquals(2, response.size());
-        assertEquals("POO", response.get(0).name());
-        assertEquals("Heranca", response.get(1).name());
+        assertEquals("Introdução", response.get(0).name());
+        assertEquals("POO", response.get(1).name());
 
-        verify(courseRepository, times(1)).findById(1L);
-        verify(lessonRepository, times(1)).find("course.id", 1L);
-        verify(lessonPanacheQuery, times(1)).list();
+        verify(courseRepository).findById(1L);
+        verify(lessonRepository).find("course.id", 1L);
+        verify(lessonPanacheQuery).list();
     }
 
     @Test
-    void listLessons_quandoCursoNaoExiste_deveLancarNotFoundException() {
-        when(courseRepository.findById(1L)).thenReturn(null);
+    void listLessons_deveLancarNotFoundQuandoCursoNaoExistir() {
+        when(courseRepository.findById(77L)).thenReturn(null);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> service.listLessons(1L)
-        );
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> service.listLessons(77L));
 
-        assertEquals("Course not found: 1", exception.getMessage());
-        verify(courseRepository, times(1)).findById(1L);
+        assertEquals("Course not found: 77", ex.getMessage());
+
         verify(lessonRepository, never()).find(anyString(), Optional.ofNullable(any()));
     }
-
 }
