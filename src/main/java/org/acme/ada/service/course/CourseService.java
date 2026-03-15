@@ -13,6 +13,8 @@ public interface CourseService {
 
     List<CourseResponseDTO> list(int page, int size);
 
+    List<CourseResponseDTO> listAll();
+
     CourseResponseDTO findById(Long id);
 
     CourseResponseDTO update(Long id, CourseDTO dto);

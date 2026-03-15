@@ -37,6 +37,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
     public List<CourseResponseDTO> list(int page, int size) {
         List<Course> courses = courseRepository.findAll()
                 .page(Page.of(page, size))
@@ -48,6 +49,16 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
+    public List<CourseResponseDTO> listAll() {
+        return courseRepository.listAll()
+                .stream()
+                .map(CourseResponseDTO::valueOf)
+                .toList();
+    }
+
+    @Override
+    @Transactional
     public CourseResponseDTO findById(Long id) {
         Course course = courseRepository.findById(id);
         if (course == null) {
@@ -96,6 +107,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
     public List<LessonResponseDTO> listLessons(Long courseId) {
         // garante 404 se o curso não existe (conforme requisito)
         Course course = courseRepository.findById(courseId);

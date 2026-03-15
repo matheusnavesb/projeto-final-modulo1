@@ -12,14 +12,12 @@ public record CourseResponseDTO(
 ) {
     public static CourseResponseDTO valueOf(Course course) {
 
-        List<LessonResponseDTO> lessonsDTO = null;
-
-        if (course.getLessons() != null) {
-            lessonsDTO = course.getLessons()
-                    .stream()
-                    .map(LessonResponseDTO::valueOf)
-                    .toList();
-        }
+        List<LessonResponseDTO> lessonsDTO = course.getLessons() == null
+                ? List.of()
+                : course.getLessons()
+                .stream()
+                .map(LessonResponseDTO::valueOf)
+                .toList();
 
         return new CourseResponseDTO(
                 course.getId(),

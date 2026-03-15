@@ -42,10 +42,16 @@ public class CourseResource {
 
     @GET
     public Response list(
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) {
+            @QueryParam("page") Integer page,
+            @QueryParam("size") Integer size) {
 
-        List<CourseResponseDTO> courses = service.list(page, size);
+        List<CourseResponseDTO> courses;
+
+        if (page != null && size != null) {
+            courses = service.list(page, size);
+        } else {
+            courses = service.listAll();
+        }
 
         return Response.ok(courses).build();
     }
