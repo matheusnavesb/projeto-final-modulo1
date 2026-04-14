@@ -1,5 +1,7 @@
 package org.acme.ada.resource;
 
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -25,6 +27,7 @@ public class CourseResource {
     CourseService service;
 
     @POST
+    @RolesAllowed("ADMIN")
     public Response create(@Valid CourseDTO dto, @Context UriInfo uriInfo) {
 
         CourseResponseDTO response = service.create(dto);
@@ -41,6 +44,7 @@ public class CourseResource {
     }
 
     @GET
+    @PermitAll
     public Response list(
             @QueryParam("page") Integer page,
             @QueryParam("size") Integer size) {
@@ -58,6 +62,7 @@ public class CourseResource {
 
     @GET
     @Path("/{id}")
+    @PermitAll
     public Response findById(@PathParam("id") Long id) {
 
         CourseResponseDTO course = service.findById(id);
@@ -67,6 +72,7 @@ public class CourseResource {
 
     @PUT
     @Path("/{id}")
+    @RolesAllowed("ADMIN")
     public Response update(@PathParam("id") Long id, @Valid CourseDTO dto) {
 
         CourseResponseDTO course = service.update(id, dto);
@@ -76,6 +82,7 @@ public class CourseResource {
 
     @DELETE
     @Path("/{id}")
+    @RolesAllowed("ADMIN")
     public Response delete(@PathParam("id") Long id) {
 
         service.delete(id);
@@ -87,6 +94,7 @@ public class CourseResource {
 
     @POST
     @Path("/{courseId}/lessons")
+    @RolesAllowed("ADMIN")
     public Response addLesson(
             @PathParam("courseId") Long courseId,
             @Valid LessonDTO dto) {
@@ -102,6 +110,7 @@ public class CourseResource {
 
     @GET
     @Path("/{courseId}/lessons")
+    @PermitAll
     public Response listLessons(@PathParam("courseId") Long courseId) {
 
         List<LessonResponseDTO> lessons = service.listLessons(courseId);
